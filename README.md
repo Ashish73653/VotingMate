@@ -34,8 +34,11 @@ Built as a **lightweight, zero-dependency vanilla web app** (HTML/CSS/JS) to max
 - **Maintainability** — Clean, modular code with separation of concerns
 
 ### AI/Chatbot Logic
-The chatbot uses a **pattern-matching engine** with:
-- **12+ topic modules** covering the complete Indian voting lifecycle
+The chatbot uses a **dual-engine architecture**:
+1. **Google Gemini AI** (primary) — When an API key is configured, the chatbot uses Google's Gemini 2.0 Flash model with a custom system prompt that enforces non-partisan, step-by-step guidance
+2. **Rule-based engine** (fallback) — 12+ topic modules with pattern matching for offline/no-key scenarios
+
+Both engines provide:
 - **Context-aware responses** with relevant follow-up suggestions
 - **Structured output** — Every response uses bullet points and step-by-step formatting
 - **Fallback handling** — Unrecognized queries receive helpful redirect suggestions
@@ -43,9 +46,10 @@ The chatbot uses a **pattern-matching engine** with:
 
 ### Decision Flow
 ```
-User Input → Lowercase & Trim → Pattern Matching → Topic Identification
-    ↓                                                       ↓
-Fallback Response ← (no match)          Structured Reply + Follow-up Chips
+User Input → Gemini AI Available?
+    ├── YES → Google Gemini API → Formatted Response + Chips
+    │            ↓ (on failure)
+    └── NO  → Rule-based Engine → Pattern Match → Structured Reply + Chips
                                                             ↓
                                               Display with typing animation
 ```
@@ -58,14 +62,15 @@ Fallback Response ← (no match)          Structured Reply + Follow-up Chips
 
 | Feature | Description |
 |---------|-------------|
-| **💬 AI Chat** | Rule-based chatbot covering registration, documents, booths, EVM, VVPAT, eligibility & more |
+| **💬 AI Chat (Gemini)** | Google Gemini AI-powered chatbot with rule-based fallback — covers registration, documents, booths, EVM, VVPAT & more |
 | **✅ Voting Checklist** | 4-step interactive checklist (Register → ID → Booth → Vote) with localStorage persistence |
 | **📋 Document Validation** | Client-side validation for Voter ID (EPIC), Aadhaar, and age eligibility |
 | **🧠 Voter Quiz** | 5-question awareness quiz with scoring, explanations, and progress tracking |
 | **🌐 Bilingual Support** | Full Hindi/English toggle across all UI and content |
-| **🎙️ Voice Input** | Web Speech API integration for hands-free chat interaction |
+| **🎙️ Voice Input** | Google Web Speech API for hands-free chat interaction |
 | **⏱️ Election Countdown** | Live countdown timer to the next general election |
 | **📊 Readiness Dashboard** | Circular progress ring showing voter readiness based on checklist |
+| **🔥 Firebase Analytics** | Anonymous usage tracking and quiz result storage via Google Firebase |
 | **🎉 Celebrations** | Confetti animation when all checklist items are completed |
 | **🎨 3D Background** | Interactive WebGL tubes that react to cursor movement (Three.js) |
 
@@ -90,20 +95,25 @@ Landing Page → Get Started → Main App
 ```
 VotingMate/
 ├── index.html              # Single-page app entry point
+├── README.md               # Project documentation
 ├── css/
 │   └── styles.css          # Complete design system (neon + glassmorphism)
 ├── js/
-│   ├── app.js              # App controller, routing, chat UI
+│   ├── app.js              # App controller, routing, Google service integration
+│   ├── gemini.js           # Google Gemini AI integration
+│   ├── firebase-config.js  # Google Firebase Analytics & Firestore
 │   ├── tubes.js            # 3D interactive background (Three.js CDN)
-│   ├── chat.js             # Chatbot engine with pattern matching
+│   ├── chat.js             # Rule-based chatbot engine (Gemini fallback)
 │   ├── checklist.js        # 4-step checklist with persistence
 │   ├── documents.js        # Document format validation
 │   ├── quiz.js             # Voter awareness quiz system
 │   ├── lang.js             # Hindi/English i18n module
-│   ├── voice.js            # Web Speech API voice input
+│   ├── voice.js            # Google Web Speech API voice input
 │   ├── countdown.js        # Election countdown timer
 │   └── confetti.js         # Celebration animation
-└── README.md
+└── tests/
+    ├── test.html           # Test runner page
+    └── tests.js            # 70+ unit & integration tests
 ```
 
 ---
@@ -121,10 +131,21 @@ VotingMate/
 
 ## 🔧 Google Services Used
 
-| Service | Usage |
-|---------|-------|
-| **Google Fonts** | Inter & Orbitron font families loaded via `fonts.googleapis.com` |
-| **Google Chrome Web Speech API** | Voice input for the chatbot (speech-to-text in English & Hindi) |
+| Service | Usage | File |
+|---------|-------|------|
+| **Google Gemini AI (2.0 Flash)** | Primary AI chatbot engine with custom system prompt, conversation history, and safety settings | `js/gemini.js` |
+| **Google Firebase Analytics** | Anonymous event tracking (page views, chat messages, tab switches, quiz completions) | `js/firebase-config.js` |
+| **Google Cloud Firestore** | Stores anonymous quiz results and user feedback for analytics | `js/firebase-config.js` |
+| **Google Fonts** | Inter & Orbitron font families loaded via `fonts.googleapis.com` | `css/styles.css` |
+| **Google Web Speech API** | Voice input for the chatbot (speech-to-text in English & Hindi) | `js/voice.js` |
+
+### Enabling Gemini AI
+```javascript
+// In browser console, set your Google Gemini API key:
+App.setGeminiKey('YOUR_GEMINI_API_KEY');
+// Get a key at: https://aistudio.google.com/apikey
+```
+The chatbot will automatically use Gemini AI when a key is set, and falls back to the rule-based engine otherwise.
 
 ---
 
@@ -155,6 +176,36 @@ npx -y serve@latest -l 3000
 ```
 
 Or simply open `index.html` directly in your browser — no build step required.
+
+---
+
+## 🧪 Testing
+
+The project includes a comprehensive test suite with **70+ automated tests** covering all modules.
+
+### Running Tests
+```bash
+# Start the server
+npx -y serve@latest -l 3000
+
+# Open test runner in browser
+# http://localhost:3000/tests/test.html
+```
+
+### Test Coverage
+
+| Module | Tests | Coverage |
+|--------|-------|----------|
+| ChatEngine | 15 | Pattern matching, greetings, fallbacks, no political bias |
+| DocValidator | 11 | Voter ID format, Aadhaar format, age calculation |
+| Quiz | 3 | Module existence, reset functionality |
+| Checklist | 7 | Steps validation, progress calculation, reset |
+| Language (i18n) | 8 | EN/HI translations, toggle, template variables |
+| Gemini AI | 7 | Init validation, key format, availability |
+| Firebase | 7 | Module API, graceful failure when uninitialized |
+| Voice Input | 3 | Module existence, browser support detection |
+| Security | 3 | XSS prevention, no inline handlers |
+| Accessibility | 8 | Semantic HTML, ARIA labels, meta tags, inputs |
 
 ---
 

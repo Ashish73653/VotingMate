@@ -1,6 +1,9 @@
-// ========================================
-// VoteMate AI — Chatbot Engine
-// ========================================
+/**
+ * @fileoverview VoteMate AI — Rule-Based Chatbot Engine
+ * @description Pattern-matching chatbot that serves as the fallback engine when
+ * Google Gemini AI is not available. Covers 12+ topics related to the Indian voting process.
+ * @module ChatEngine
+ */
 const ChatEngine = (() => {
   const responses = {
     greeting: {
